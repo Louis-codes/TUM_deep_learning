@@ -167,4 +167,3 @@ class Classifier(nn.Module):
         preds = scores.argmax(axis=1)
         acc = (labels == preds).mean()
         return preds, acc
-
