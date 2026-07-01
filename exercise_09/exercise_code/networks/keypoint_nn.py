@@ -34,39 +34,54 @@ class KeypointModel(nn.Module):
         ########################################################################
 
         dropout_p = hparams.get("dropout_p", 0.3)
+        conv_dropout_p = hparams.get("conv_dropout_p", 0.1)
 
         self.features = nn.Sequential(
-            # 1x96x96 -> 32x48x48
-            nn.Conv2d(1, 32, kernel_size=3, padding=1),
-            nn.BatchNorm2d(32),
-            nn.ReLU(),
-            nn.MaxPool2d(2),
-
-            # 32x48x48 -> 64x24x24
-            nn.Conv2d(32, 64, kernel_size=3, padding=1),
+            # 1x96x96 -> 64x48x48
+            nn.Conv2d(1, 64, kernel_size=3, padding=1),
             nn.BatchNorm2d(64),
             nn.ReLU(),
             nn.MaxPool2d(2),
+            nn.Dropout2d(conv_dropout_p),
 
-            # 64x24x24 -> 128x12x12
+            # 64x48x48 -> 128x24x24
             nn.Conv2d(64, 128, kernel_size=3, padding=1),
             nn.BatchNorm2d(128),
             nn.ReLU(),
             nn.MaxPool2d(2),
+            nn.Dropout2d(conv_dropout_p),
 
-            # 128x12x12 -> 128x6x6
-            nn.Conv2d(128, 128, kernel_size=3, padding=1),
-            nn.BatchNorm2d(128),
+            # 128x24x24 -> 256x12x12
+            nn.Conv2d(128, 256, kernel_size=3, padding=1),
+            nn.BatchNorm2d(256),
             nn.ReLU(),
             nn.MaxPool2d(2),
+            nn.Dropout2d(conv_dropout_p),
+
+            # 256x12x12 -> 256x6x6
+            nn.Conv2d(256, 256, kernel_size=3, padding=1),
+            nn.BatchNorm2d(256),
+            nn.ReLU(),
+            nn.MaxPool2d(2),
+            nn.Dropout2d(conv_dropout_p),
+
+            # 256x6x6 -> 256x3x3
+            nn.Conv2d(256, 256, kernel_size=3, padding=1),
+            nn.BatchNorm2d(256),
+            nn.ReLU(),
+            nn.MaxPool2d(2),
+            nn.Dropout2d(conv_dropout_p),
         )
 
         self.regressor = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(128 * 6 * 6, 512),
+            nn.Linear(256 * 3 * 3, 512),
             nn.ReLU(),
             nn.Dropout(dropout_p),
-            nn.Linear(512, 30),
+            nn.Linear(512, 256),
+            nn.ReLU(),
+            nn.Dropout(dropout_p),
+            nn.Linear(256, 30),
         )
 
         ########################################################################
