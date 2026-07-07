@@ -1,6 +1,8 @@
 """SegmentationNN"""
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
+import torchvision
 
 class ConvLayer(nn.Module):
 
@@ -27,8 +29,28 @@ class SegmentationNN(nn.Module):
         #                             YOUR CODE                                #
         ########################################################################
 
+        # Transfer learning: pretrained MobileNetV2 feature extractor as encoder
+        mobilenet = torchvision.models.mobilenet_v2(weights="IMAGENET1K_V1")
+        self.encoder = mobilenet.features  # (N, 3, H, W) -> (N, 1280, H/32, W/32)
 
-        pass
+        # Decoder: 1x1 conv to shrink channels, then upsample + conv blocks
+        # (plain upsampling + convolution avoids checkerboard artifacts)
+        self.decoder = nn.Sequential(
+            nn.Conv2d(1280, 128, kernel_size=1),
+            nn.BatchNorm2d(128),
+            nn.ReLU(),
+
+            nn.Upsample(scale_factor=2, mode="bilinear", align_corners=False),
+            ConvLayer(128, 128),
+
+            nn.Upsample(scale_factor=2, mode="bilinear", align_corners=False),
+            ConvLayer(128, 64),
+
+            nn.Upsample(scale_factor=2, mode="bilinear", align_corners=False),
+            ConvLayer(64, 64),
+
+            nn.Conv2d(64, num_classes, kernel_size=1),
+        )
 
         ########################################################################
         #                           END OF YOUR CODE                           #
@@ -43,11 +65,14 @@ class SegmentationNN(nn.Module):
         - x: PyTorch input Variable
         """
         ########################################################################
-        #                             YOUR CODE                                #  
+        #                             YOUR CODE                                #
         ########################################################################
 
-
-        pass
+        input_size = x.shape[2:]
+        x = self.encoder(x)
+        x = self.decoder(x)
+        # final upsample back to the exact input resolution
+        x = F.interpolate(x, size=input_size, mode="bilinear", align_corners=False)
 
         ########################################################################
         #                           END OF YOUR CODE                           #
