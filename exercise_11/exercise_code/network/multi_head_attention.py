@@ -46,8 +46,11 @@ class MultiHeadAttention(nn.Module):
         #       - All linear layers should only be a weight without a bias!    #
         ########################################################################
 
-
-        pass
+        self.weights_q = nn.Linear(d_model, n_heads * d_k, bias=False)
+        self.weights_k = nn.Linear(d_model, n_heads * d_k, bias=False)
+        self.weights_v = nn.Linear(d_model, n_heads * d_v, bias=False)
+        self.attention = ScaledDotAttention(d_k)
+        self.project = nn.Linear(n_heads * d_v, d_model, bias=False)
 
         ########################################################################
         #                           END OF YOUR CODE                           #
@@ -95,11 +98,25 @@ class MultiHeadAttention(nn.Module):
         #       - Above the todo, we have already extracted the batch_size and #
         #         the sequence lengths for you!                                #
         #       - Use reshape() to split or combine dimensions                 #
-        #       - Use transpose() again to swap dimensions                     #                            
+        #       - Use transpose() again to swap dimensions                     #
         ########################################################################
 
+        # Linear projections: (batch, seq, d_model) -> (batch, seq, n_heads * d_k/d_v)
+        q = self.weights_q(q)
+        k = self.weights_k(k)
+        v = self.weights_v(v)
 
-        pass
+        # Split heads: (batch, seq, n_heads, d_k/d_v) -> (batch, n_heads, seq, d_k/d_v)
+        q = q.reshape(batch_size, sequence_length_queries, self.n_heads, self.d_k).transpose(1, 2)
+        k = k.reshape(batch_size, sequence_length_keys, self.n_heads, self.d_k).transpose(1, 2)
+        v = v.reshape(batch_size, sequence_length_keys, self.n_heads, self.d_v).transpose(1, 2)
+
+        # Scaled dot-product attention per head: (batch, n_heads, seq_q, d_v)
+        outputs = self.attention(q, k, v)
+
+        # Recombine heads: (batch, seq_q, n_heads * d_v), then project back to d_model
+        outputs = outputs.transpose(1, 2).reshape(batch_size, sequence_length_queries, self.n_heads * self.d_v)
+        outputs = self.project(outputs)
 
         ########################################################################
         #                           END OF YOUR CODE                           #
