@@ -20,11 +20,10 @@ class ScaledDotAttention(nn.Module):
         ########################################################################
         # TODO:                                                                #
         #   Task 2: Initialize the softmax layer (torch.nn implementation)     #
-        #                                                                      #           
+        #                                                                      #
         ########################################################################
 
-
-        pass
+        self.softmax = nn.Softmax(dim=-1)
 
         ########################################################################
         #                           END OF YOUR CODE                           #
@@ -67,8 +66,9 @@ class ScaledDotAttention(nn.Module):
         #       - Also dont forget to scale the scores as discussed!           #
         ########################################################################
 
-
-        pass
+        scores = torch.matmul(q, torch.transpose(k, -2, -1)) / (self.d_k ** 0.5)
+        scores = self.softmax(scores)
+        outputs = torch.matmul(scores, v)
 
         ########################################################################
         #                           END OF YOUR CODE                           #
