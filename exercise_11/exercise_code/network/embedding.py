@@ -28,8 +28,14 @@ def positional_encoding(d_model: int,
     #         did in the notebook.                                         #
     ########################################################################
 
+    exponent = torch.arange(0, d_model, 2) / d_model
+    pos = torch.arange(0, max_length)[:, None]
 
-    pass
+    angle_freq = torch.exp(exponent * (-torch.log(torch.Tensor([10000]))))
+
+    output = torch.zeros(max_length, d_model)
+    output[:, 0::2] = torch.sin(pos * angle_freq)
+    output[:, 1::2] = torch.cos(pos * angle_freq)
 
     ########################################################################
     #                           END OF YOUR CODE                           #
@@ -66,8 +72,8 @@ class Embedding(nn.Module):
         #       - Initialize it using d_model and max_length                   #
         ########################################################################
 
-
-        pass
+        self.embedding = nn.Embedding(vocab_size, d_model)
+        self.pos_encoding = positional_encoding(d_model, max_length)
 
         ########################################################################
         #                           END OF YOUR CODE                           #
@@ -108,8 +114,7 @@ class Embedding(nn.Module):
         #         is add them to the embeddings!                               #
         ########################################################################
 
-
-        pass
+        outputs = self.embedding(inputs) + pos_encoding
 
         ########################################################################
         #                           END OF YOUR CODE                           #
